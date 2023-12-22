@@ -6,9 +6,6 @@ import datetime
 
 
 def analyze_log_file(file_path):
-    with open(file_path, "r") as file:
-        log_data = file.readlines()
-
     pattern = r'(\d+\.\d+\.\d+\.\d+) - - \[.*\] "(\w+) .+ HTTP/\d\.\d" \d+ \d+ ".+" ".+" (\d+)'
     regex = re.compile(pattern)
 
@@ -17,21 +14,22 @@ def analyze_log_file(file_path):
     ip_counts = {}
     longest_requests = []
 
-    for line in log_data:
-        match = regex.search(line)
-        if match:
-            ip, method, duration = match.groups()
-            total_requests += 1
-            method_counts[method] = method_counts.get(method, 0) + 1
-            ip_counts[ip] = ip_counts.get(ip, 0) + 1
-            longest_requests.append(
-                {
-                    "duration": int(duration),
-                    "method": method,
-                    "ip": ip,
-                    "log_line": line.strip(),
-                }
-            )
+    with open(file_path, "r") as file:
+        for line in file:
+            match = regex.search(line)
+            if match:
+                ip, method, duration = match.groups()
+                total_requests += 1
+                method_counts[method] = method_counts.get(method, 0) + 1
+                ip_counts[ip] = ip_counts.get(ip, 0) + 1
+                longest_requests.append(
+                    {
+                        "duration": int(duration),
+                        "method": method,
+                        "ip": ip,
+                        "log_line": line.strip(),
+                    }
+                )
 
     longest_requests.sort(key=lambda x: x["duration"], reverse=True)
     longest_requests = longest_requests[:3]
@@ -67,16 +65,23 @@ def make_report(report):
 
 
 def main():
+    if len(sys.argv) < 2:
+        print("Пожалуйста, укажите путь к файлу или директории в аргументах командной строки.")
+        return
+
     path = sys.argv[1]
 
-    if os.path.isdir(path):
+    if not os.path.exists(path):
+        print(f"Указанный путь {path} не существует.")
+        return
+    elif os.path.isdir(path):
         result = analyze_logs_in_directory(path)
         make_report(result)
     elif os.path.isfile(path):
         result = analyze_log_file(path)
         make_report(result)
     else:
-        print(f"Указанный путь {path} не является ни директорией, ни файлом.")
+        print(f"Что-то пошло не так")
 
 
 if __name__ == "__main__":
